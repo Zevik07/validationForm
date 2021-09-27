@@ -104,3 +104,24 @@ html {
 .spacer {
     margin-top: 36px;
 }
+
+.form-group.horizontal, .radio-group{
+    display: flex;
+    flex-wrap: wrap;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+}
+.radio-group label{
+    font-size: 1.4rem;
+}
+.radio-group input {
+    margin-right: 6px;
+}
+.form-group.horizontal .form-label{
+    padding-bottom: 0;
+}
+.form-group.horizontal .form-message{
+    padding-top: 0;
+    width: 100%;
+}

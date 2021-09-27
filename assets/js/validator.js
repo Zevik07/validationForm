@@ -3,11 +3,10 @@ const $ = document.querySelector.bind(document)
 const $$ = document.querySelectorAll.bind(document)
 
 function Validator(options) {  
-
     let selectorRules = {}; 
     // Validate rules
     function validate(inputElement, rule) {  
-        let parentElement = inputElement.parentElement
+        let parentElement = inputElement.closest(options.formGroup)
         let errorElement = parentElement.querySelector(options.errorSelector)
         let errorMsg
 
@@ -16,16 +15,25 @@ function Validator(options) {
 
         // Check rules
         for (let i = 0; i < rules.length; i++){
-            errorMsg = rules[i](inputElement.value)
+            switch (inputElement.type) {
+                case 'radio':
+                case 'checkbox':
+                    errorMsg = rules[i](
+                        formElement.querySelector(rule.selector + ':checked')
+                    );
+                    break;
+            
+                default:
+                    errorMsg = rules[i](inputElement.value)
+            }
             if (errorMsg) break;
         }
-        // Invalid
         if (errorMsg)
         {
             errorElement.innerText = errorMsg
             parentElement.classList.add('invalid')
         }
-        else { // Valid
+        else {
             errorElement.innerText = ''
             parentElement.classList.remove('invalid')
         }
@@ -52,7 +60,33 @@ function Validator(options) {
                     // Get form input
                     let validInputs = formElement.querySelectorAll('[name]:not([disabled])')
                     let formValues = Array.from(validInputs).reduce((values, input) => {
-                        return (values[input.name] = input.value) && values
+                        switch (input.type) {
+                            case 'radio':
+                                if (input.matches(':checked')){
+                                    values[input.name] = input.value
+                                }
+                                else {
+                                    values[input.name] = ''
+                                }
+                                break;
+                            case 'checkbox':
+                                if (!input.matches(':checked')) {
+                                    values[input.name] = ''
+                                    return values
+                                }
+                                if (!Array.isArray(values[input.name])){
+                                    values[input.name] = []
+                                }
+                                values[input.name].push(input.value)
+                                break;
+                            case 'file':
+                                values[input.name] = input.files
+                                break;
+                            default:
+                                values[input.name] = input.value
+                                break;
+                        }
+                        return values
                     }, {})
                     options.onSubmit(formValues)
                 }
@@ -60,11 +94,8 @@ function Validator(options) {
                     formElement.submit()
                 }
             }
-            else{
-                console.log('có lỗi');
-            }
         }
-        // Evenct for rule
+        // Event for rule
         options.rules.forEach(function (rule) {  
             // Store rules to array
             if (Array.isArray(selectorRules[rule.selector])){
@@ -74,22 +105,28 @@ function Validator(options) {
                 selectorRules[rule.selector] = [rule.test]
             }
 
-            let inputElement = formElement.querySelector(rule.selector)
+            let inputElements = formElement.querySelectorAll(rule.selector)
 
-            if (inputElement) {
-
-                // On blur input
-                inputElement.onblur = function () {  
-                    validate(inputElement, rule)
-                }
-
-                // On typing
-                inputElement.oninput = function () { 
-                    let parentElement = inputElement.parentElement 
+            if (inputElements) {
+                Array.from(inputElements).forEach(function (inputElement) {
+                    let parentElement = inputElement.closest(options.formGroup)
                     let errorElement = parentElement.querySelector(options.errorSelector)
-                    errorElement.innerText = ''
-                    parentElement.classList.remove('invalid')
-                }
+
+                    // For input 
+                    inputElement.onblur = function () {  
+                        validate(inputElement, rule)
+                    }
+
+                    // For input
+                    inputElement.oninput = function () { 
+                        errorElement.innerText = ''
+                        parentElement.classList.remove('invalid')
+                    }
+                    // For select
+                    inputElement.onchange = function () {  
+                        validate(inputElement, rule)
+                    }
+                })
             }
         })
     }
@@ -99,7 +136,7 @@ Validator.isRequired = function (selector, msg) {
     return {
         selector: selector,
         test: function (value) {
-            return value.trim() ? undefined : msg || 'Vui lòng nhập trường này'
+            return value ? undefined : msg || 'Vui lòng nhập trường này'
         }
     }
 }
@@ -131,23 +168,31 @@ Validator.isConfirmed = function (selector, getConfirmValue, msg) {
 
 Validator({
     form: '#form-1',
+    formGroup: '.form-group',
     errorSelector: '.form-message', 
     rules: [
-        // Fullname
-        Validator.isRequired('#fullname', 'Nhập tên kìa thằng ngu'),
-        // Email
-        Validator.isRequired('#email'),
-        Validator.isEmail('#email'),
-        // Password
-        Validator.isRequired('#password'),
-        Validator.minLength('#password', 6),
-        Validator.isRequired('#password_confirmation'),
-        Validator.isConfirmed('#password_confirmation', function(){
-            return $('#form-1 #password').value
-        }, 'Mật khẩu nhập lại không chính xác'),
+        // // Fullname
+        // Validator.isRequired('#fullname', 'Nhập tên kìa thằng ngu'),
+        // // Email
+        // Validator.isRequired('#email'),
+        // Validator.isEmail('#email'),
+        // // Password
+        // Validator.isRequired('#password'),
+        // Validator.minLength('#password', 6),
+        // // Password confirmation
+        // Validator.isRequired('#password_confirmation'),
+        // Validator.isConfirmed('#password_confirmation', function(){
+        //     return $('#form-1 #password').value
+        // }, 'Mật khẩu nhập lại không chính xác'),
+        // // Gender
+        // Validator.isRequired('input[name="gender"]'),
+        // // Province
+        // Validator.isRequired('#province'),
+        Validator.isRequired('#avatar'),
     ],
     onSubmit: function(data){
         // Call API here
+        console.log(data)
     }
 
 })  
